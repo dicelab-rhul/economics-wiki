@@ -1,18 +1,24 @@
 name: Sync GitHub Wiki into repo
 
+permissions:
+  contents: write     # <-- REQUIRED for committing & pushing
+
 on:
   workflow_dispatch:
   schedule:
     - cron: "0 * * * *"     # hourly sync (optional)
   push:
-    branches: [ main ]       # trigger on main updates
+    branches: [ main ]
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout main repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0       # ensures branch is writable
 
       - name: Clone wiki repo
         run: |
