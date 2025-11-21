@@ -1,4 +1,4 @@
-name: Sync GitHub Wiki into repo
+name: Bi-directional Wiki Sync
 
 permissions:
   contents: write
@@ -15,24 +15,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      # Checkout main repo
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          clean: true        # ← crucial
+          path: repo
 
-      - name: Remove existing wiki folder completely
+      # Checkout wiki repo
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}.wiki
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          path: wiki
+
+      # Sync wiki → repo
+      - name: Pull Wiki into repo/wiki
         run: |
-          rm -rf wiki
+          rm -rf repo/wiki
+          mkdir -p repo/wiki
+          cp -R wiki/* repo/wiki/ || true
 
-      - name: Clone wiki repository
+      # Sync repo → wiki
+      - name: Push repo/wiki back into wiki
         run: |
-          git clone https://github.com/${{ github.repository }}.wiki.git wiki
+          rm -rf wiki/*
+          cp -R repo/wiki/* wiki/ || true
 
-      - name: Commit and push changes
+      # Commit & push repo changes
+      - name: Commit repo changes
+        working-directory: repo
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add -A
-          git commit -m "Sync wiki" || echo "No changes"
+          git commit -m "Sync from wiki" || echo "No changes"
+          git push
+
+      # Commit & push wiki changes
+      - name: Commit wiki changes
+        working-directory: wiki
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -m "Sync from repo" || echo "No changes"
           git push
