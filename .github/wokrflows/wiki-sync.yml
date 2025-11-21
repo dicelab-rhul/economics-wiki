@@ -1,38 +1,38 @@
 name: Sync GitHub Wiki into repo
 
 permissions:
-  contents: write     # <-- REQUIRED for committing & pushing
+  contents: write
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 * * * *"     # hourly sync (optional)
   push:
     branches: [ main ]
+  schedule:
+    - cron: "0 * * * *"
 
 jobs:
   sync:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout main repo
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0       # ensures branch is writable
+          fetch-depth: 0
+          clean: true        # ← crucial
 
-      - name: Clone wiki repo
-        run: |
-          git clone https://github.com/${{ github.repository }}.wiki.git wiki-new
-
-      - name: Replace wiki folder
+      - name: Remove existing wiki folder completely
         run: |
           rm -rf wiki
-          mv wiki-new wiki
+
+      - name: Clone wiki repository
+        run: |
+          git clone https://github.com/${{ github.repository }}.wiki.git wiki
 
       - name: Commit and push changes
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add wiki
+          git add -A
           git commit -m "Sync wiki" || echo "No changes"
           git push
